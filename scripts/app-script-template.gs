@@ -1,0 +1,69 @@
+/**
+ * scripts/apps-script-template.gs
+ * ------------------------------------------------------------------
+ * NOT run by Node/Next.js — this is Google Apps Script (runs inside
+ * Google's own environment). Copy this into the Apps Script editor
+ * bound to each dealership's leads Google Sheet, once per new client.
+ *
+ * SETUP, per dealership:
+ *   1. Create/open the dealership's leads Google Sheet
+ *   2. Extensions → Apps Script
+ *   3. Paste this file's contents in, replacing the default Code.gs
+ *   4. Project Settings (gear icon) → Script Properties → add a
+ *      property named SHARED_SECRET with a long random value (e.g.
+ *      generate one with `openssl rand -hex 32` locally) — this is
+ *      why the secret isn't hardcoded in this file: Script Properties
+ *      aren't visible to anyone who only has view access to the code
+ *   5. Deploy → New deployment → type: Web app → Execute as: Me →
+ *      Who has access: Anyone → Deploy
+ *   6. Copy the resulting Web App URL into that project's
+ *      .env.local as GOOGLE_SHEETS_ENDPOINT
+ *   7. Copy the SAME secret value from step 4 into .env.local as
+ *      GOOGLE_SHEETS_SECRET — these two values must match exactly
+ *
+ * WHY THE SECRET IS IN THE REQUEST BODY, NOT A HEADER: Apps Script's
+ * doPost(e) event object does not expose incoming HTTP headers at
+ * all — only e.postData.contents (the raw body) and e.parameter
+ * (query string / form params). A header-based secret would silently
+ * never be checked. See lib/sheets.js for the Next.js side sending
+ * the secret this way.
+ * ------------------------------------------------------------------
+ */
+
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var expectedSecret = PropertiesService.getScriptProperties().getProperty(
+    "SHARED_SECRET"
+  );
+
+  var data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: "invalid_body" })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Reject anything without a matching secret. Returns the same
+  // generic error whether the secret was missing or wrong — no need
+  // to help a probing request figure out which.
+  if (!expectedSecret || data.secret !== expectedSecret) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: "unauthorized" })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Only write the actual lead fields — `secret` itself never gets
+  // written into the Sheet as a spurious column.
+  sheet.appendRow([
+    new Date(),
+    data.name || "",
+    data.phone || "",
+    data.message || "",
+  ]);
+
+  return ContentService.createTextOutput(
+    JSON.stringify({ success: true })
+  ).setMimeType(ContentService.MimeType.JSON);
+}
