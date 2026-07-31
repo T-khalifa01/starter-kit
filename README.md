@@ -76,6 +76,8 @@ npx @sentry/wizard@latest -i nextjs
 ```
 next.config.mjs      security headers + CSP, static — DONE
 ACCESSIBILITY.md      design-time checklist, not automated — DONE
+PERFORMANCE.md          design-time checklist, not automated — DONE
+TERMS_OF_SERVICE_TEMPLATE.md   structure only, needs real legal review — DONE
 /app
   layout.jsx          root layout: GA4, metadata, structured data, Speed Insights, font loading (hand-set per project) — DONE
   page.jsx             THIS dealership's actual page — real JSX, hand-assembled (per-project, never generic)
@@ -517,6 +519,14 @@ and what should it say" as a checklist item requiring actual legal
 guidance before a real client site goes live with the lead form active,
 not something to copy-paste a generic template for.
 
+**Terms of Service — a starting structure exists, still needs real
+review.** See `TERMS_OF_SERVICE_TEMPLATE.md` — scoped correctly to what
+this site actually is (informational, WhatsApp handoff, no online
+transactions), with every dealership-specific value left as a
+`[BRACKETED]` placeholder. Same category as the privacy notice above:
+a real attorney needs to review it — and the Privacy Policy it
+references doesn't exist yet either, same status.
+
 ---
 
 ## 12. Testing & pre-deploy validation
@@ -651,6 +661,79 @@ manually port the specific change over.
 
 ---
 
+## 14. Cookie / analytics consent
+
+GA4 no longer loads unconditionally when `analytics.ga4MeasurementId` is
+set — it now waits for explicit visitor consent, via
+`components/ui/CookieConsentBanner.jsx` +
+`components/ui/AnalyticsLoader.jsx` + `lib/consent.js`.
+
+**Architecture:** both components are Client Components using
+`useSyncExternalStore` (not `useEffect`+`useState`) to read consent state
+from `localStorage`. This is deliberate, confirmed by a real dry-run
+lint failure: a naive `useEffect(() => setState(...))` version trips the
+`react-hooks/set-state-in-effect` rule, and `useSyncExternalStore` also
+genuinely avoids a flash-of-wrong-banner-state for returning visitors
+that the `useEffect` version had — not just a lint workaround, an actual
+correctness improvement. Both are pulled out into their own small client
+components specifically so `app/layout.jsx` itself never needs
+`"use client"` — the homepage stays statically pre-rendered, same
+reasoning as the CSP nonce decision (section 9).
+
+**Scope:** only gates GA4. This app has no other non-essential cookies —
+no sessions, no ads, no third-party trackers.
+
+**The banner's copy is a placeholder, not legal content** — same
+category as the privacy notice flagged in section 10. Do not ship it to
+a real client without real legal review of the wording and which
+jurisdictions require showing it at all.
+
+**Known limitation:** if a visitor grants consent (GA4 loads), then
+later revokes it via a future "cookie settings" link, that stops future
+tracking but doesn't retroactively undo an already-loaded gtag script or
+already-set cookies within that same page load — a full reload after
+revoking is what actually clears that state. Standard behavior for this
+class of simple implementation.
+
+**Not yet wired:** a persistent "Cookie Settings" link to let a visitor
+change their mind after the initial choice (`lib/consent.js` already
+exports `resetConsent()` for this) — belongs in `Footer.jsx`, which is
+still a stub. Add this when that section gets built for a real project,
+not before.
+
+---
+
+## 15. GA4 key events (conversions) — dashboard step, per project
+
+`lib/analytics.js`'s `ANALYTICS_EVENTS` already fires the right events
+at the right moments — but GA4 doesn't treat any event as a
+"conversion" (GA4 now calls these **key events**) until it's explicitly
+marked as one in the GA4 dashboard itself. This is a manual step per
+dealership project, same category as the Sentry Uptime Monitor setup
+(section 7) — code can't do this part.
+
+**Mark these as key events:**
+- `whatsapp_cta_click`
+- `whatsapp_floating_click`
+- `form_submit`
+
+**Do NOT mark `form_submit_error` as a key event** — it's a failure
+signal (used for debugging/monitoring form issues), not something that
+represents a successful conversion.
+
+**How:** in the GA4 Admin panel, under Events, toggle "Mark as key
+event" for each of the three above. (GA4's exact UI/navigation shifts
+periodically — if this doesn't match what's on screen, search GA4's
+current documentation for "mark as key event" rather than assume the
+steps above are still exactly accurate.)
+
+Do this once real GA4 tracking is confirmed working for a project (i.e.
+after a visitor has actually accepted the consent banner and triggered
+at least one of these events at least once — GA4 can't mark an event
+as a key event until it's seen that event fire at least once).
+
+---
+
 ## Status
 
 **Done:** `next.config.mjs` (security headers + static CSP + Speed
@@ -668,12 +751,17 @@ check, payload guard, catch-all), `app/robots.js`, `app/sitemap.js`,
 `components/ui/WhatsAppButton.jsx`, `components/ui/FloatingWhatsApp.jsx`,
 `components/ui/Button.jsx`, `components/ui/Input.jsx`,
 `components/ui/TextArea.jsx`, `hooks/useLeadForm.js`,
-`components/sections/Contact.jsx`
+`components/sections/Contact.jsx`, `lib/consent.js`,
+`components/ui/AnalyticsLoader.jsx`,
+`components/ui/CookieConsentBanner.jsx` (GA4 now consent-gated),
+`PERFORMANCE.md`, `TERMS_OF_SERVICE_TEMPLATE.md` (structure only, needs
+real legal review)
 
 **Not yet built:** the rest of `components/sections/*` (`Hero.jsx`,
-`About.jsx`, `Inventory.jsx`, `Location.jsx`, `Footer.jsx` — still stubs),
-Sentry `initialScope` dealership tagging (manual step per clone, section
-6), Sentry Uptime Monitor setup per clone (section 7)
+`About.jsx`, `Inventory.jsx`, `Location.jsx`, `Footer.jsx` — still stubs,
+`Footer.jsx` specifically also needs the Cookie Settings link, section
+14), Sentry `initialScope` dealership tagging (manual step per clone,
+section 6), Sentry Uptime Monitor setup per clone (section 7)
 
 **Deliberately deferred:** `hooks/useGsapAnimation.js` — not built
 speculatively. GSAP/ScrollTrigger scroll-reveal animations get built when

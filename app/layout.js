@@ -39,9 +39,14 @@
  * etc) — components use those utility classes directly, never inline
  * style, for anything color-related.
  *
- * ANALYTICS: GA4 script tags only render if
- * config.analytics.ga4MeasurementId is set (see lib/analytics.js
- * isAnalyticsEnabled). No key = no script.
+ * ANALYTICS: GA4 loading is gated behind visitor consent (see
+ * lib/consent.js, components/ui/AnalyticsLoader.jsx,
+ * components/ui/CookieConsentBanner.jsx). Even when
+ * config.analytics.ga4MeasurementId is set, the actual GA4 script
+ * doesn't load until the visitor explicitly accepts — this file only
+ * decides WHETHER analytics is configured for this project at all
+ * (isAnalyticsEnabled), not whether it's allowed to run for a given
+ * visitor.
  *
  * SENTRY: no manual init here — the @sentry/nextjs wizard generates
  * its own instrumentation files (instrumentation.js,
@@ -50,7 +55,11 @@
  * CSP: deliberately NOT nonce-based, on purpose — see next.config.mjs
  * for the reasoning. This file stays fully static (no headers()/
  * cookies() calls), which is what keeps the page pre-rendered at
- * build time rather than dynamically rendered per request.
+ * build time rather than dynamically rendered per request. The
+ * consent check itself happens inside AnalyticsLoader/
+ * CookieConsentBanner, both client components — that's what lets this
+ * file stay static while still gating something that needs
+ * localStorage.
  *
  * STRUCTURED DATA: the JSON-LD <script> below is a
  * type="application/ld+json" block, not executable JavaScript, but
@@ -67,12 +76,13 @@
  */
 
 import { Playfair_Display, Inter } from "next/font/google";
-import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import siteConfig from "@/config/site.config";
 import { isAnalyticsEnabled } from "@/lib/analytics";
 import { buildMetadata } from "@/lib/seo";
 import { buildLocalBusinessSchema } from "@/lib/structuredData";
+import AnalyticsLoader from "@/components/ui/AnalyticsLoader";
+import CookieConsentBanner from "@/components/ui/CookieConsentBanner";
 import "./globals.css";
 
 export const metadata = buildMetadata(siteConfig);
@@ -120,18 +130,8 @@ export default function RootLayout({ children }) {
 
         {gaEnabled && (
           <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${analytics.ga4MeasurementId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="ga4-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${analytics.ga4MeasurementId}');
-              `}
-            </Script>
+            <AnalyticsLoader measurementId={analytics.ga4MeasurementId} />
+            <CookieConsentBanner />
           </>
         )}
 
