@@ -136,17 +136,33 @@ const siteConfig = {
   serviceModel: "model-1", // "model-1" | "model-2"
 
   // ==================================================================
-  // 8. LEAD FORM MESSAGE TEMPLATE — the WhatsApp message format used
-  //    when a form submission redirects to the dealership's sales
-  //    number. Functional string consumed by lib/whatsapp.js, not
-  //    page content.
-  //    NOTE: The Google Sheets endpoint itself is NOT here — it's a
-  //    per-deploy value that lives in .env.local as
-  //    GOOGLE_SHEETS_ENDPOINT (see .env.example).
+  // 8. LEAD FORM — message template and dropdown options. Functional
+  //    values consumed by lib/whatsapp.js and the form itself, not
+  //    page content in the prose sense — but genuinely dealership-
+  //    specific, unlike most of this file, so it lives here rather
+  //    than being hardcoded anywhere.
+  //    NOTE: The Google Sheets endpoint/secret are NOT here — those
+  //    are per-deploy values in .env.local (see .env.example).
   // ==================================================================
   leadCapture: {
+    // Dropdown options for the "Interested In" field on the lead
+    // form (components/sections/Contact.jsx). REAL per-dealership
+    // list — edit to match what this specific dealership actually
+    // offers. Order here is the order shown in the dropdown. Kept
+    // generic in lib/validators.js (any non-empty string passes
+    // server-side validation) — the real constraint is that the
+    // dropdown itself only offers these options, so a visitor can't
+    // submit something outside this list through the real form.
+    services: [
+      "Importing",
+      "Buying a vehicle",
+      "Trade-in / Selling",
+      "Financing",
+      "General Inquiry",
+    ],
+
     formEnquiryMessageTemplate:
-      "New website enquiry:\nName: {name}\nPhone: {phone}\nMessage: {message}",
+      "New website enquiry:\nInterested In: {interestedIn}\nName: {name}\nPhone: {phone}\nMessage: {message}",
   },
 
   // ==================================================================

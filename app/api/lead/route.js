@@ -117,7 +117,7 @@ export async function POST(request) {
       );
     }
 
-    const { name, phone, message, website } = parsed.data;
+    const { name, phone, interestedIn, message, website } = parsed.data;
 
     // `website` is the disguised honeypot field (see lib/validators.js
     // for why it's not literally called "honeypot"). Bots that
@@ -128,7 +128,7 @@ export async function POST(request) {
       return Response.json({ success: true, redirectUrl: null });
     }
 
-    const leadPayload = { name, phone, message: message || "" };
+    const leadPayload = { name, phone, interestedIn, message: message || "" };
 
     // Fire-and-await, not fire-and-block: we need this to finish
     // before the serverless function exits, but its result never

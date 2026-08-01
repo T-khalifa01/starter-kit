@@ -57,7 +57,13 @@ export function useLeadForm({ defaultCountry = "EG" } = {}) {
     reset,
   } = useForm({
     resolver: zodResolver(clientSchema),
-    defaultValues: { name: "", phone: "", message: "", website: "" },
+    defaultValues: {
+      name: "",
+      phone: "",
+      interestedIn: "",
+      message: "",
+      website: "",
+    },
   });
 
   async function onSubmit(data) {

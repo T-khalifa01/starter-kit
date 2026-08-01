@@ -197,6 +197,16 @@ checkError(
 );
 
 // ------------------------------------------------------------------
+// Lead form services list — the "Interested In" dropdown
+// (components/sections/Contact.jsx) is broken with an empty list.
+// ------------------------------------------------------------------
+checkError(
+  Array.isArray(siteConfig.leadCapture.services) &&
+    siteConfig.leadCapture.services.length > 0,
+  "leadCapture.services is empty — the Interested In dropdown needs at least one option"
+);
+
+// ------------------------------------------------------------------
 // Lead form message template — must still contain the placeholders
 // lib/whatsapp.js's interpolateTemplate() actually fills in. If these
 // get edited out, the WhatsApp message silently loses that field.
@@ -209,6 +219,10 @@ checkWarning(
 checkWarning(
   template.includes("{phone}"),
   "leadCapture.formEnquiryMessageTemplate no longer includes {phone} — it won't appear in the WhatsApp message"
+);
+checkWarning(
+  template.includes("{interestedIn}"),
+  "leadCapture.formEnquiryMessageTemplate no longer includes {interestedIn} — it won't appear in the WhatsApp message"
 );
 
 // ------------------------------------------------------------------

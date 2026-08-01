@@ -7,18 +7,22 @@
  *
  * SETUP, per dealership:
  *   1. Create/open the dealership's leads Google Sheet
- *   2. Extensions → Apps Script
- *   3. Paste this file's contents in, replacing the default Code.gs
- *   4. Project Settings (gear icon) → Script Properties → add a
+ *   2. Add column headers matching the row order below: Timestamp,
+ *      Name, Phone, Interested In, Message — appendRow() writes by
+ *      POSITION, not by matching header names, so the Sheet's actual
+ *      column order must match this file's appendRow() call exactly
+ *   3. Extensions → Apps Script
+ *   4. Paste this file's contents in, replacing the default Code.gs
+ *   5. Project Settings (gear icon) → Script Properties → add a
  *      property named SHARED_SECRET with a long random value (e.g.
  *      generate one with `openssl rand -hex 32` locally) — this is
  *      why the secret isn't hardcoded in this file: Script Properties
  *      aren't visible to anyone who only has view access to the code
- *   5. Deploy → New deployment → type: Web app → Execute as: Me →
+ *   6. Deploy → New deployment → type: Web app → Execute as: Me →
  *      Who has access: Anyone → Deploy
- *   6. Copy the resulting Web App URL into that project's
+ *   7. Copy the resulting Web App URL into that project's
  *      .env.local as GOOGLE_SHEETS_ENDPOINT
- *   7. Copy the SAME secret value from step 4 into .env.local as
+ *   8. Copy the SAME secret value from step 5 into .env.local as
  *      GOOGLE_SHEETS_SECRET — these two values must match exactly
  *
  * WHY THE SECRET IS IN THE REQUEST BODY, NOT A HEADER: Apps Script's
@@ -55,11 +59,13 @@ function doPost(e) {
   }
 
   // Only write the actual lead fields — `secret` itself never gets
-  // written into the Sheet as a spurious column.
+  // written into the Sheet as a spurious column. Order here MUST
+  // match the Sheet's actual column headers — see setup step 2 above.
   sheet.appendRow([
     new Date(),
     data.name || "",
     data.phone || "",
+    data.interestedIn || "",
     data.message || "",
   ]);
 

@@ -13,6 +13,13 @@
  * readable names — no hardcoded country data file to maintain, and
  * it covers every country libphonenumber-js supports rather than a
  * curated subset. Computed once at module load, not per render.
+ *
+ * INTERESTED IN: options come from site.config.js's
+ * leadCapture.services — real, dealership-specific list. The
+ * dropdown only ever offers those configured options, which is what
+ * actually constrains the submitted value (lib/validators.js's
+ * server-side check is deliberately generic, not tied to this exact
+ * list — see that file's comment for why).
  * ------------------------------------------------------------------
  */
 
@@ -20,6 +27,7 @@
 
 import { getCountries, getCountryCallingCode } from "libphonenumber-js/min";
 import { useLeadForm } from "@/hooks/useLeadForm";
+import siteConfig from "@/config/site.config";
 import Input from "@/components/ui/Input";
 import TextArea from "@/components/ui/TextArea";
 import Button from "@/components/ui/Button";
@@ -65,6 +73,35 @@ export default function Contact() {
             {...register("name")}
             error={errors.name?.message}
           />
+
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="interestedIn"
+              className="text-sm font-medium text-text-primary"
+            >
+              Interested In
+            </label>
+            <select
+              id="interestedIn"
+              defaultValue=""
+              className="rounded-md border border-secondary bg-surface px-3 py-2 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+              {...register("interestedIn")}
+            >
+              <option value="" disabled>
+                Select an option
+              </option>
+              {siteConfig.leadCapture.services.map((service) => (
+                <option key={service} value={service}>
+                  {service}
+                </option>
+              ))}
+            </select>
+            {errors.interestedIn && (
+              <span className="text-sm text-red-500">
+                {errors.interestedIn.message}
+              </span>
+            )}
+          </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-text-primary">
